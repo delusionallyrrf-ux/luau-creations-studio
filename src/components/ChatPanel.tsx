@@ -177,12 +177,7 @@ function MessageBubble({ message }: { message: UIMessage }) {
       </div>
       <div className="flex-1 min-w-0 space-y-3">
         {withoutFences && (
-          <div className="prose prose-sm prose-invert max-w-none text-sm leading-relaxed
-            prose-p:my-2 prose-headings:text-foreground prose-strong:text-foreground
-            prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-code:text-primary
-            prose-code:bg-surface-2 prose-code:px-1 prose-code:py-0.5 prose-code:rounded
-            prose-code:before:content-none prose-code:after:content-none
-            prose-a:text-primary">
+          <div className="markdown text-sm leading-relaxed text-foreground/90">
             <ReactMarkdown>{withoutFences}</ReactMarkdown>
           </div>
         )}
