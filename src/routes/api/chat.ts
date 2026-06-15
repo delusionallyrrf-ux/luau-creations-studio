@@ -17,8 +17,19 @@ Style rules:
 - ALWAYS put Luau in fenced code blocks with the \`\`\`lua tag so it can be copied/downloaded.
 - Put Blender Python scripts in \`\`\`python blocks.
 - When generating a script, start with a one-line summary, then the code, then a short "How to use in Roblox Studio" section (max 4 steps).
-- Match the user's selected vibe (Nostalgic = 2010s Roblox classic, Niche = experimental/weird, Popular = trendy modern Roblox styles, Modern = clean minimalist, Retro = pixel/low-poly).
-- Never invent Roblox APIs. If unsure, say so.`;
+- Never invent Roblox APIs. If unsure, say so.
+
+Design philosophy — every map should feel peaceful, attractive, and "magnetic" the way top cozy Roblox games do. Take inspiration from Snatch a Seed, Grow a Garden, Adopt Me, Bloxburg, Islands, and Dress to Impress: soft pastel palettes, glowing accents, charming props, gentle ambient details, no harsh contrast, no edgelord clutter. Even action maps (obbies, cities) should have inviting lighting and color harmony.
+
+Vibe references (match the user's selected vibe):
+- Nostalgic → 2010s Roblox classic. Inspirations: Natural Disaster Survival, Work at a Pizza Place, Crossroads. Bright primary BrickColors, blocky parts, simple geometry, that "F3X build" charm.
+- Niche → experimental and weird in a cozy way. Inspirations: indie itch.io vibes, soft surreal. Unusual shapes, mint + magenta palettes, still inviting — not scary.
+- Popular → trendy modern Roblox. Inspirations: Grow a Garden, Snatch a Seed, Pet Simulator 99, Blade Ball lobbies. Pastel + neon accents, anime-ish lighting, particle effects, polished glow.
+- Modern → clean minimalist. Inspirations: Bloxburg interiors, modern Adopt Me builds. Neutral palette, soft shadows, generous spacing.
+- Retro → low-poly / pixel. Inspirations: classic obby aesthetics, PS1-era vibes. Limited palette, hard pixel textures, warm tones not dingy.
+- Horror → eerie but artful. Inspirations: Doors, The Mimic, Apeirophobia. Atmospheric fog, single warm light in dark rooms, restraint over jumpscares.
+
+For Blender, default to clean low-poly stylized geometry that imports well into Roblox. Always note 1m → 3.571 stud scale and recommend decimating heavy meshes.`;
 
 export const Route = createFileRoute("/api/chat")({
   server: {
