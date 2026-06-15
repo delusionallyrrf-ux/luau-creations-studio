@@ -222,6 +222,22 @@ function CodeCard({ lang, code }: { lang: string; code: string }) {
         </div>
       </div>
       <pre className="code-block !rounded-none !border-0 max-h-96"><code>{code}</code></pre>
+      {summarizeCode(code) && (
+        <div className="px-3 py-1.5 border-t border-border bg-surface-2/30 text-[10px] text-muted-foreground italic leading-snug">
+          {summarizeCode(code)}
+        </div>
+      )}
     </div>
   );
+}
+
+function summarizeCode(code: string): string | null {
+  for (const raw of code.split("\n").slice(0, 6)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = line.match(/^(?:--|#|\/\/)\s*(.+)$/);
+    if (m && m[1].length > 3) return m[1].replace(/\.$/, "");
+    break;
+  }
+  return null;
 }
