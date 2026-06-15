@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Plus, Trash2, MessageSquare, Boxes } from "lucide-react";
 import type { Thread } from "@/lib/threads";
 
@@ -76,6 +76,3 @@ export function ThreadSidebar({ threads, activeId, onNew, onDelete }: Props) {
     </aside>
   );
 }
-
-// silence unused import warning if not used elsewhere
-export const _ = useRouterState;
