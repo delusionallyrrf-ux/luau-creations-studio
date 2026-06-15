@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UIMessage } from "ai";
+import { Settings } from "lucide-react";
 import { ThreadSidebar } from "@/components/ThreadSidebar";
 import { ChatPanel } from "@/components/ChatPanel";
 import { GeneratorPanel } from "@/components/GeneratorPanel";
