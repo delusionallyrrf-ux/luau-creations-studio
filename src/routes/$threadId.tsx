@@ -22,6 +22,7 @@ function ThreadPage() {
   const navigate = useNavigate();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     const loaded = loadThreads();
