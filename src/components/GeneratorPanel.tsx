@@ -1,24 +1,49 @@
 import { useState } from "react";
-import { Download, Copy, Check, ChevronDown } from "lucide-react";
+import { Download, Copy, Check, ChevronDown, X } from "lucide-react";
 import { VIBES, GENERATORS, type Thread } from "@/lib/threads";
 import { TEMPLATES } from "@/lib/luau-templates";
 
 interface Props {
   thread: Thread;
   onChange: (patch: Partial<Thread>) => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-export function GeneratorPanel({ thread, onChange }: Props) {
-  const [open, setOpen] = useState(true);
+export function GeneratorPanel({ thread, onChange, open, onClose }: Props) {
+  const [tipsOpen, setTipsOpen] = useState(true);
   const templates = TEMPLATES[thread.generator] ?? [];
 
   return (
-    <aside className="w-[360px] shrink-0 border-l border-border bg-surface/40 flex flex-col h-screen sticky top-0">
-      <div className="p-4 border-b border-border">
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-          Design Settings
+    <>
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity ${
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden={!open}
+      />
+      <aside
+        className={`fixed top-0 right-0 z-50 h-screen w-full sm:w-[400px] border-l border-border bg-surface flex flex-col transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+        role="dialog"
+        aria-label="Design settings"
+      >
+      <div className="p-4 border-b border-border flex items-start justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+            Design Settings
+          </div>
+          <h2 className="text-display text-lg font-semibold">Tune your build</h2>
         </div>
-        <h2 className="text-display text-lg font-semibold">Tune your build</h2>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 grid place-items-center rounded-md hover:bg-surface-2 text-muted-foreground hover:text-foreground transition"
+          aria-label="Close settings"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -72,12 +97,12 @@ export function GeneratorPanel({ thread, onChange }: Props) {
         </Section>
 
         <button
-          onClick={() => setOpen(!open)}
+          onClick={() => setTipsOpen(!tipsOpen)}
           className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
         >
-          <ChevronDown className={`w-3 h-3 transition ${open ? "" : "-rotate-90"}`} /> Tips
+          <ChevronDown className={`w-3 h-3 transition ${tipsOpen ? "" : "-rotate-90"}`} /> Tips
         </button>
-        {open && (
+        {tipsOpen && (
           <div className="text-xs text-muted-foreground space-y-2 panel p-3">
             <p>
               <span className="text-foreground">Roblox Studio:</span> paste Luau scripts into{" "}
@@ -94,7 +119,8 @@ export function GeneratorPanel({ thread, onChange }: Props) {
           </div>
         )}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
