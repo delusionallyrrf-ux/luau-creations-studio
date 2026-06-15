@@ -127,7 +127,15 @@ function ThreadPage() {
         onNew={handleNew}
         onDelete={handleDelete}
       />
-      <main className="flex-1 min-w-0 flex flex-col h-screen">
+      <main className="flex-1 min-w-0 flex flex-col h-screen relative">
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="absolute top-4 right-4 z-30 w-10 h-10 grid place-items-center rounded-full bg-surface-2 border border-border text-foreground/80 hover:text-foreground hover:border-primary/60 hover:bg-surface shadow-lg transition"
+          aria-label="Open design settings"
+          title="Design settings"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
         <ChatPanel
           key={active.id}
           thread={active}
@@ -135,7 +143,12 @@ function ThreadPage() {
           onTitle={handleTitle}
         />
       </main>
-      <GeneratorPanel thread={active} onChange={updateThread} />
+      <GeneratorPanel
+        thread={active}
+        onChange={updateThread}
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 }
