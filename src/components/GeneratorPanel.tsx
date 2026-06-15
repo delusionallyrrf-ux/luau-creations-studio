@@ -33,9 +33,17 @@ export function GeneratorPanel({ thread, onChange, open, onClose }: Props) {
       <div className="p-4 border-b border-border flex items-start justify-between">
         <div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-          Design Settings
+            Design Settings
+          </div>
+          <h2 className="text-display text-lg font-semibold">Tune your build</h2>
         </div>
-        <h2 className="text-display text-lg font-semibold">Tune your build</h2>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 grid place-items-center rounded-md hover:bg-surface-2 text-muted-foreground hover:text-foreground transition"
+          aria-label="Close settings"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
