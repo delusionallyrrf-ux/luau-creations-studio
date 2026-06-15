@@ -1,29 +1,34 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { loadThreads, newThread, saveThreads } from "@/lib/threads";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "MapForge — AI Roblox Luau Map Generator" },
+      { name: "description", content: "Generate Roblox Luau map scripts and Blender exporters with an AI assistant. Sleek studio for all creators." },
     ],
   }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const threads = loadThreads();
+    if (threads.length > 0) {
+      navigate({ to: "/$threadId", params: { threadId: threads[0].id }, replace: true });
+    } else {
+      const t = newThread();
+      saveThreads([t]);
+      navigate({ to: "/$threadId", params: { threadId: t.id }, replace: true });
+    }
+  }, [navigate]);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen grid place-items-center">
+      <div className="text-muted-foreground text-sm">Loading MapForge...</div>
     </div>
   );
 }
