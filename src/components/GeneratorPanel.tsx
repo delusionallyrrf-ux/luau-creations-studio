@@ -97,12 +97,12 @@ export function GeneratorPanel({ thread, onChange, open, onClose }: Props) {
         </Section>
 
         <button
-          onClick={() => setOpen(!open)}
+          onClick={() => setTipsOpen(!tipsOpen)}
           className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
         >
-          <ChevronDown className={`w-3 h-3 transition ${open ? "" : "-rotate-90"}`} /> Tips
+          <ChevronDown className={`w-3 h-3 transition ${tipsOpen ? "" : "-rotate-90"}`} /> Tips
         </button>
-        {open && (
+        {tipsOpen && (
           <div className="text-xs text-muted-foreground space-y-2 panel p-3">
             <p>
               <span className="text-foreground">Roblox Studio:</span> paste Luau scripts into{" "}
@@ -119,7 +119,8 @@ export function GeneratorPanel({ thread, onChange, open, onClose }: Props) {
           </div>
         )}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
