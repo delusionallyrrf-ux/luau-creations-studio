@@ -9,15 +9,20 @@ export type Thread = {
   messages: UIMessage[];
   vibe: string;
   generator: string;
+  items: string[];
+  detail: "rich" | "epic" | "insane";
+  locked: boolean;
 };
 
 export const VIBES = [
   { id: "nostalgic", label: "Nostalgic", hint: "Classic 2010s Roblox feel" },
-  { id: "niche", label: "Niche", hint: "Experimental / weird" },
-  { id: "popular", label: "Popular", hint: "Trendy modern Roblox styles" },
+  { id: "niche", label: "Niche", hint: "Experimental / weird-cozy" },
+  { id: "popular", label: "Popular", hint: "Grow-a-Garden / Snatch-a-Seed energy" },
   { id: "modern", label: "Modern", hint: "Clean minimal architecture" },
   { id: "retro", label: "Retro", hint: "Low-poly / pixel vibes" },
   { id: "horror", label: "Horror", hint: "Dim, eerie, atmospheric" },
+  { id: "fantasy", label: "Fantasy", hint: "Mystical glow, magic, runes" },
+  { id: "anime", label: "Anime", hint: "Studio Ghibli pastel skies" },
 ];
 
 export const GENERATORS = [
@@ -25,7 +30,27 @@ export const GENERATORS = [
   { id: "obby", label: "Obby / Parkour", desc: "Stages, kill bricks, checkpoints" },
   { id: "city", label: "City / Buildings", desc: "Roads, houses, props" },
   { id: "blender", label: "Blender → Roblox", desc: "Mesh import & exporter helper" },
+  { id: "weather", label: "Weather / Sky", desc: "Rain, fog, day-night, particles" },
+  { id: "gui", label: "GUI / UI", desc: "ScreenGuis, HUDs, menus, shops" },
+  { id: "items", label: "Items / Tools", desc: "Tools, pets, seeds, collectibles" },
 ];
+
+export const ITEM_PACKS = [
+  { id: "seeds", label: "Seeds & Plants", hint: "Plantable, growable, harvestable" },
+  { id: "pets", label: "Pets & Companions", hint: "Followers with stats & abilities" },
+  { id: "tools", label: "Tools & Weapons", hint: "Swords, watering cans, gadgets" },
+  { id: "currency", label: "Currency & Shop", hint: "Coins, gems, shop UI" },
+  { id: "food", label: "Food & Consumables", hint: "Boosts, potions, snacks" },
+  { id: "decor", label: "Decor & Furniture", hint: "Placeable cozy props" },
+  { id: "vehicles", label: "Vehicles & Mounts", hint: "Cars, boats, gliders" },
+  { id: "magic", label: "Magic & Spells", hint: "Particle FX skills" },
+];
+
+export const DETAIL_LEVELS = [
+  { id: "rich", label: "Rich", hint: "Detailed, ~150 lines, multiple systems" },
+  { id: "epic", label: "Epic", hint: "Cinematic, ~400 lines, polished" },
+  { id: "insane", label: "Insane", hint: "Studio-grade, 600+ lines, every detail" },
+] as const;
 
 export function loadThreads(): Thread[] {
   if (typeof window === "undefined") return [];
@@ -33,7 +58,13 @@ export function loadThreads(): Thread[] {
     const raw = localStorage.getItem(KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Thread[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((t) => ({
+      items: [],
+      detail: "epic" as const,
+      locked: true,
+      ...t,
+    }));
   } catch {
     return [];
   }
@@ -50,8 +81,11 @@ export function newThread(): Thread {
     title: "New build",
     updatedAt: Date.now(),
     messages: [],
-    vibe: "modern",
+    vibe: "popular",
     generator: "terrain",
+    items: [],
+    detail: "epic",
+    locked: false,
   };
 }
 
