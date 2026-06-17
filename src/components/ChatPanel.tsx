@@ -21,8 +21,9 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
     messages: thread.messages,
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: { vibe: thread.vibe, generator: thread.generator },
+      body: { vibe: thread.vibe, generator: thread.generator, items: thread.items, detail: thread.detail },
     }),
+
   });
 
   // Persist messages back to parent
