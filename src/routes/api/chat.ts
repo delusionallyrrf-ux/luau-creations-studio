@@ -99,19 +99,39 @@ export const Route = createFileRoute("/api/chat")({
         const system = ctxBits.length ? `${SYSTEM}\n\nLocked settings for this chat:\n- ${ctxBits.join("\n- ")}` : SYSTEM;
 
         const gateway = createLovableAiGatewayProvider(key);
-        const model = gateway("google/gemini-2.5-pro");
 
-        try {
-          const result = streamText({
-            model,
-            system,
-            messages: await convertToModelMessages(messages as UIMessage[]),
-          });
-          return result.toUIMessageStreamResponse({ originalMessages: messages as UIMessage[] });
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : "AI error";
-          return new Response(msg, { status: 500 });
+        // Trim very long histories so we don't blow context/credits.
+        // Keep the most recent 20 messages — earlier turns are summarized by the locked settings anyway.
+        const trimmed = (messages as UIMessage[]).slice(-20);
+        const modelMessages = await convertToModelMessages(trimmed);
+
+        // Try Pro first, fall back to Flash on rate/credit/availability errors.
+        const modelIds = ["google/gemini-2.5-pro", "google/gemini-2.5-flash"];
+        let lastErr: unknown = null;
+        for (const id of modelIds) {
+          try {
+            const result = streamText({
+              model: gateway(id),
+              system,
+              messages: modelMessages,
+              onError: (e) => { lastErr = e; },
+            });
+            return result.toUIMessageStreamResponse({ originalMessages: messages as UIMessage[] });
+          } catch (e) {
+            lastErr = e;
+            const msg = e instanceof Error ? e.message : String(e);
+            // Only fall through to flash on rate-limit / overload / not-found
+            if (!/429|rate|overload|unavailable|not.?found|deprecat/i.test(msg)) break;
+          }
         }
+        const msg = lastErr instanceof Error ? lastErr.message : "AI error";
+        const status = /402|credit/i.test(msg) ? 402 : /429|rate/i.test(msg) ? 429 : 500;
+        const friendly = status === 402
+          ? "AI credits exhausted on this workspace. Add credits to keep building."
+          : status === 429
+          ? "AI rate limit hit. Wait a few seconds and try again."
+          : `AI error: ${msg}`;
+        return new Response(friendly, { status });
       },
     },
   },
