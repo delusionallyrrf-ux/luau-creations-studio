@@ -60,11 +60,12 @@ export function loadThreads(): Thread[] {
     const parsed = JSON.parse(raw) as Thread[];
     if (!Array.isArray(parsed)) return [];
     return parsed.map((t) => ({
-      items: [],
-      detail: "epic" as const,
-      locked: true,
       ...t,
+      items: t.items ?? [],
+      detail: t.detail ?? ("epic" as const),
+      locked: t.locked ?? true,
     }));
+
   } catch {
     return [];
   }
