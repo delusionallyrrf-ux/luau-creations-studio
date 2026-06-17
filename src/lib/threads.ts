@@ -92,13 +92,14 @@ export function newThread(): Thread {
 
 export function extractCodeBlocks(text: string): { lang: string; code: string }[] {
   const out: { lang: string; code: string }[] = [];
-  const re = /```(\w+)?\n([\s\S]*?)```/g;
+  const re = /```([a-zA-Z0-9_+-]*)\s*\r?\n([\s\S]*?)```/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    out.push({ lang: (m[1] || "txt").toLowerCase(), code: m[2].trimEnd() });
+    out.push({ lang: (m[1] || "txt").toLowerCase(), code: m[2].replace(/\s+$/, "") });
   }
   return out;
 }
+
 
 export function messageText(msg: UIMessage): string {
   return msg.parts
