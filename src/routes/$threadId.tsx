@@ -138,7 +138,7 @@ function ThreadPage() {
         >
           <Settings className="w-4 h-4" />
         </button>
-        {thread.locked ? (
+        {active.locked ? (
           <ChatPanel
             key={active.id}
             thread={active}
