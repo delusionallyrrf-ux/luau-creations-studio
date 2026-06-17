@@ -5,7 +5,9 @@ import { Settings } from "lucide-react";
 import { ThreadSidebar } from "@/components/ThreadSidebar";
 import { ChatPanel } from "@/components/ChatPanel";
 import { GeneratorPanel } from "@/components/GeneratorPanel";
+import { SetupScreen } from "@/components/SetupScreen";
 import { loadThreads, newThread, saveThreads, type Thread } from "@/lib/threads";
+
 
 export const Route = createFileRoute("/$threadId")({
   head: () => ({
