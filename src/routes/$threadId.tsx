@@ -138,19 +138,31 @@ function ThreadPage() {
         >
           <Settings className="w-4 h-4" />
         </button>
-        <ChatPanel
-          key={active.id}
-          thread={active}
-          onMessages={handleMessages}
-          onTitle={handleTitle}
-        />
+        {thread.locked ? (
+          <ChatPanel
+            key={active.id}
+            thread={active}
+            onMessages={handleMessages}
+            onTitle={handleTitle}
+          />
+        ) : (
+          <SetupScreen
+            thread={active}
+            onConfirm={(patch) => updateThread(patch)}
+          />
+        )}
       </main>
       <GeneratorPanel
         thread={active}
         onChange={updateThread}
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+        onChangeSettings={() => {
+          updateThread({ locked: false });
+          setSettingsOpen(false);
+        }}
       />
+
     </div>
   );
 }
