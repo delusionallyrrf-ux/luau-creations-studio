@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Download, Copy, Check, ChevronDown, X } from "lucide-react";
-import { VIBES, GENERATORS, type Thread } from "@/lib/threads";
+import { Download, Copy, Check, ChevronDown, X, RefreshCw, AlertTriangle } from "lucide-react";
+import { VIBES, GENERATORS, ITEM_PACKS, DETAIL_LEVELS, type Thread } from "@/lib/threads";
 import { TEMPLATES } from "@/lib/luau-templates";
 
 interface Props {
@@ -8,11 +8,18 @@ interface Props {
   onChange: (patch: Partial<Thread>) => void;
   open: boolean;
   onClose: () => void;
+  onChangeSettings: () => void;
 }
 
-export function GeneratorPanel({ thread, onChange, open, onClose }: Props) {
+export function GeneratorPanel({ thread, onChange, open, onClose, onChangeSettings }: Props) {
   const [tipsOpen, setTipsOpen] = useState(true);
+  const [confirming, setConfirming] = useState(false);
   const templates = TEMPLATES[thread.generator] ?? [];
+
+  const vibe = VIBES.find((v) => v.id === thread.vibe);
+  const generator = GENERATORS.find((g) => g.id === thread.generator);
+  const detail = DETAIL_LEVELS.find((d) => d.id === thread.detail);
+  const items = (thread.items ?? []).map((id) => ITEM_PACKS.find((i) => i.id === id)?.label).filter(Boolean);
 
   return (
     <>
@@ -30,97 +37,115 @@ export function GeneratorPanel({ thread, onChange, open, onClose }: Props) {
         role="dialog"
         aria-label="Design settings"
       >
-      <div className="p-4 border-b border-border flex items-start justify-between">
-        <div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-            Design Settings
+        <div className="p-4 border-b border-border flex items-start justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+              Locked settings
+            </div>
+            <h2 className="text-display text-lg font-semibold">This chat's build</h2>
           </div>
-          <h2 className="text-display text-lg font-semibold">Tune your build</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 grid place-items-center rounded-md hover:bg-surface-2 text-muted-foreground hover:text-foreground transition"
+            aria-label="Close settings"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="w-8 h-8 grid place-items-center rounded-md hover:bg-surface-2 text-muted-foreground hover:text-foreground transition"
-          aria-label="Close settings"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        <Section title="Vibe">
-          <div className="grid grid-cols-2 gap-2">
-            {VIBES.map((v) => (
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          <SummaryRow label="Vibe" value={vibe?.label ?? thread.vibe} hint={vibe?.hint} />
+          <SummaryRow label="Focus" value={generator?.label ?? thread.generator} hint={generator?.desc} />
+          <SummaryRow label="Detail" value={detail?.label ?? thread.detail} hint={detail?.hint} />
+          <SummaryRow
+            label="Items"
+            value={items.length > 0 ? items.join(", ") : "None"}
+            hint={items.length > 0 ? `${items.length} pack${items.length > 1 ? "s" : ""} enabled` : "No item systems selected"}
+          />
+
+          <div className="panel p-3 space-y-2">
+            {!confirming ? (
               <button
-                key={v.id}
-                onClick={() => onChange({ vibe: v.id })}
-                className={`text-left p-2.5 rounded-md border text-xs transition ${
-                  thread.vibe === v.id
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border bg-surface hover:bg-surface-2 text-muted-foreground"
-                }`}
+                onClick={() => setConfirming(true)}
+                className="w-full flex items-center justify-center gap-2 h-9 rounded-md border border-border hover:border-primary/60 hover:bg-surface-2 text-sm transition"
               >
-                <div className="font-medium text-foreground text-sm">{v.label}</div>
-                <div className="text-[11px] mt-0.5 opacity-80">{v.hint}</div>
+                <RefreshCw className="w-3.5 h-3.5" /> Change settings
               </button>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Generator">
-          <div className="space-y-1.5">
-            {GENERATORS.map((g) => (
-              <button
-                key={g.id}
-                onClick={() => onChange({ generator: g.id })}
-                className={`w-full text-left p-2.5 rounded-md border text-sm transition ${
-                  thread.generator === g.id
-                    ? "border-primary bg-primary/10"
-                    : "border-border bg-surface hover:bg-surface-2"
-                }`}
-              >
-                <div className="font-medium">{g.label}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">{g.desc}</div>
-              </button>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Starter snippets">
-          <div className="space-y-2">
-            {templates.length === 0 && (
-              <div className="text-xs text-muted-foreground">No starters for this generator yet.</div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    This will reset the visible build progress so the AI starts fresh under new
+                    settings. The conversation history is kept — the AI will still remember what
+                    you discussed.
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="flex-1 h-9 rounded-md border border-border hover:bg-surface-2 text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setConfirming(false);
+                      onChangeSettings();
+                    }}
+                    className="flex-1 h-9 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:opacity-90"
+                  >
+                    Yes, change
+                  </button>
+                </div>
+              </div>
             )}
-            {templates.map((t) => (
-              <SnippetCard key={t.name} name={t.name} lang={t.lang} code={t.code} />
-            ))}
           </div>
-        </Section>
 
-        <button
-          onClick={() => setTipsOpen(!tipsOpen)}
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-        >
-          <ChevronDown className={`w-3 h-3 transition ${tipsOpen ? "" : "-rotate-90"}`} /> Tips
-        </button>
-        {tipsOpen && (
-          <div className="text-xs text-muted-foreground space-y-2 panel p-3">
-            <p>
-              <span className="text-foreground">Roblox Studio:</span> paste Luau scripts into{" "}
-              <code className="text-primary">ServerScriptService</code> and press F5.
-            </p>
-            <p>
-              <span className="text-foreground">Blender:</span> 1 meter ≈ 3.571 studs. The exporter
-              snippet handles scaling automatically.
-            </p>
-            <p>
-              <span className="text-foreground">Chat:</span> ask the AI to modify any snippet — "make
-              it bigger", "add lava", "change the vibe to horror".
-            </p>
-          </div>
-        )}
-      </div>
+          <Section title="Starter snippets">
+            <div className="space-y-2">
+              {templates.length === 0 && (
+                <div className="text-xs text-muted-foreground">No starters for this focus yet — ask the AI directly.</div>
+              )}
+              {templates.map((t) => (
+                <SnippetCard key={t.name} name={t.name} lang={t.lang} code={t.code} />
+              ))}
+            </div>
+          </Section>
+
+          <button
+            onClick={() => setTipsOpen(!tipsOpen)}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            <ChevronDown className={`w-3 h-3 transition ${tipsOpen ? "" : "-rotate-90"}`} /> Tips
+          </button>
+          {tipsOpen && (
+            <div className="text-xs text-muted-foreground space-y-2 panel p-3">
+              <p>
+                <span className="text-foreground">Roblox Studio:</span> paste Luau scripts into{" "}
+                <code className="text-primary">ServerScriptService</code> and press F5.
+              </p>
+              <p>
+                <span className="text-foreground">Blender:</span> 1 meter ≈ 3.571 studs. The
+                exporter script handles scaling automatically.
+              </p>
+            </div>
+          )}
+          {/* Hidden onChange usage to keep API stable for future inline tweaks */}
+          <button className="hidden" onClick={() => onChange({})} />
+        </div>
       </aside>
     </>
+  );
+}
+
+function SummaryRow({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="panel p-3">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className="text-sm font-medium">{value}</div>
+      {hint && <div className="text-[11px] text-muted-foreground mt-0.5">{hint}</div>}
+    </div>
   );
 }
 
