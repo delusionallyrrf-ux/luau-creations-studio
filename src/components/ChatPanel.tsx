@@ -22,6 +22,9 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { vibe: thread.vibe, generator: thread.generator, items: thread.items, detail: thread.detail },
+      prepareSendMessagesRequest: ({ body, messages }) => ({
+        body: { ...body, messages: compactMessagesForRequest(messages) },
+      }),
     }),
 
   });
@@ -213,6 +216,21 @@ function splitIntoSegments(text: string): Segment[] {
   const tail = text.slice(last).trim();
   if (tail) segments.push({ type: "text", text: tail });
   return segments;
+}
+
+function compactMessagesForRequest(messages: UIMessage[]): UIMessage[] {
+  return messages.slice(-12).map((message) => {
+    const limit = message.role === "user" ? 2_000 : 4_000;
+    const text = trimForRequest(messageText(message), limit);
+    return { ...message, parts: [{ type: "text", text }] } as UIMessage;
+  });
+}
+
+function trimForRequest(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  const head = Math.floor(maxLength * 0.6);
+  const tail = maxLength - head;
+  return `${text.slice(0, head)}\n\n[Older long output trimmed so chat keeps working.]\n\n${text.slice(-tail)}`;
 }
 
 function CodeCard({ lang, code }: { lang: string; code: string }) {
