@@ -2,6 +2,8 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
+const CHAT_HISTORY_LIMIT = 12;
+
 type Body = {
   messages?: unknown;
   vibe?: string;
@@ -105,9 +107,8 @@ export const Route = createFileRoute("/api/chat")({
 
         const gateway = createLovableAiGatewayProvider(key);
 
-        // Trim very long histories so we don't blow context/credits.
-        // Keep the most recent 20 messages — earlier turns are summarized by the locked settings anyway.
-        const trimmed = (messages as UIMessage[]).slice(-20);
+        // Trim long histories and long generated scripts so the chat doesn't fail after extended use.
+        const trimmed = compactMessages(messages as UIMessage[]);
         const modelMessages = await convertToModelMessages(trimmed);
 
         // Try Pro first, fall back to Flash on rate/credit/availability errors.
@@ -119,9 +120,16 @@ export const Route = createFileRoute("/api/chat")({
               model: gateway(id),
               system,
               messages: modelMessages,
-              onError: (e) => { lastErr = e; },
+              onError: (e) => { lastErr = e; console.error("AI stream error", e); },
             });
-            return result.toUIMessageStreamResponse({ originalMessages: messages as UIMessage[] });
+            return result.toUIMessageStreamResponse({
+              originalMessages: trimmed,
+              onError: (e) => {
+                lastErr = e;
+                console.error("AI response error", e);
+                return friendlyAiError(e);
+              },
+            });
           } catch (e) {
             lastErr = e;
             const msg = e instanceof Error ? e.message : String(e);
@@ -141,3 +149,29 @@ export const Route = createFileRoute("/api/chat")({
     },
   },
 });
+
+function compactMessages(messages: UIMessage[]): UIMessage[] {
+  return messages.slice(-CHAT_HISTORY_LIMIT).map((message) => {
+    const limit = message.role === "user" ? 2_000 : 4_000;
+    return { ...message, parts: [{ type: "text", text: trimText(messageText(message), limit) }] } as UIMessage;
+  });
+}
+
+function messageText(msg: UIMessage): string {
+  return msg.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+}
+
+function trimText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  const head = Math.floor(maxLength * 0.6);
+  const tail = maxLength - head;
+  return `${text.slice(0, head)}\n\n[Older long output trimmed so chat keeps working.]\n\n${text.slice(-tail)}`;
+}
+
+function friendlyAiError(error: unknown): string {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (/402|credit/i.test(msg)) return "AI credits are exhausted on this workspace. Add credits to keep building.";
+  if (/429|rate/i.test(msg)) return "AI rate limit hit. Wait a few seconds and try again.";
+  if (/context|token|too large|maximum/i.test(msg)) return "That chat got too long for the AI request. I trimmed older long code outputs automatically, so try sending again.";
+  return "The AI had trouble finishing that response. Try again, or start a fresh chat if this thread has lots of long code.";
+}
