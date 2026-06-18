@@ -164,7 +164,8 @@ function trimText(text: string, maxLength: number): string {
 
 function friendlyAiError(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
-  if (/402|credit|payment required/i.test(msg)) return "AI credits are exhausted on this workspace. Add credits to keep building.";
+  const statusCode = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : undefined;
+  if (statusCode === 402 || /402|credit|payment required/i.test(msg)) return "AI credits are exhausted on this workspace. Add credits to keep building.";
   if (/429|rate/i.test(msg)) return "AI rate limit hit. Wait a few seconds and try again.";
   if (/context|token|too large|maximum/i.test(msg)) return "That chat got too long for the AI request. I trimmed older long code outputs automatically, so try sending again.";
   return "The AI had trouble finishing that response. Try again, or start a fresh chat if this thread has lots of long code.";
