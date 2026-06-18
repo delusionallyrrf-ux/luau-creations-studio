@@ -113,6 +113,14 @@ function ThreadPage() {
     [threads, threadId, navigate]
   );
 
+  const handleClearAllChats = useCallback(() => {
+    const t = newThread();
+    saveThreads([t]);
+    setThreads([t]);
+    setSettingsOpen(false);
+    navigate({ to: "/$threadId", params: { threadId: t.id }, replace: true });
+  }, [navigate]);
+
   if (!hydrated || !active) {
     return (
       <div className="min-h-screen grid place-items-center text-muted-foreground text-sm">
@@ -161,6 +169,7 @@ function ThreadPage() {
           updateThread({ locked: false });
           setSettingsOpen(false);
         }}
+        onClearAllChats={handleClearAllChats}
       />
 
     </div>
