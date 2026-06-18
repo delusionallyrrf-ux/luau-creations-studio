@@ -111,31 +111,25 @@ export const Route = createFileRoute("/api/chat")({
         const trimmed = compactMessages(messages as UIMessage[]);
         const modelMessages = await convertToModelMessages(trimmed);
 
-        // Try Pro first, fall back to Flash on rate/credit/availability errors.
-        const modelIds = ["google/gemini-2.5-pro", "google/gemini-2.5-flash"];
         let lastErr: unknown = null;
-        for (const id of modelIds) {
-          try {
-            const result = streamText({
-              model: gateway(id),
-              system,
-              messages: modelMessages,
-              onError: (e) => { lastErr = e; console.error("AI stream error", e); },
-            });
-            return result.toUIMessageStreamResponse({
-              originalMessages: trimmed,
-              onError: (e) => {
-                lastErr = e;
-                console.error("AI response error", e);
-                return friendlyAiError(e);
-              },
-            });
-          } catch (e) {
-            lastErr = e;
-            const msg = e instanceof Error ? e.message : String(e);
-            // Only fall through to flash on rate-limit / overload / not-found
-            if (!/429|rate|overload|unavailable|not.?found|deprecat/i.test(msg)) break;
-          }
+        try {
+          const result = streamText({
+            model: gateway("google/gemini-3-flash-preview"),
+            system,
+            messages: modelMessages,
+            maxRetries: 2,
+            onError: (e) => { lastErr = e; console.error("AI stream error", e); },
+          });
+          return result.toUIMessageStreamResponse({
+            originalMessages: trimmed,
+            onError: (e) => {
+              lastErr = e;
+              console.error("AI response error", e);
+              return friendlyAiError(e);
+            },
+          });
+        } catch (e) {
+          lastErr = e;
         }
         const msg = lastErr instanceof Error ? lastErr.message : "AI error";
         const status = /402|credit/i.test(msg) ? 402 : /429|rate/i.test(msg) ? 429 : 500;
