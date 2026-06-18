@@ -3,7 +3,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
 import { Send, Download, Copy, Check, Sparkles, User } from "lucide-react";
-import { messageText, extractCodeBlocks, type Thread } from "@/lib/threads";
+import { messageText, extractCodeBlocks, ensureCodeBlocks, type Thread } from "@/lib/threads";
 
 interface Props {
   thread: Thread;
@@ -149,8 +149,9 @@ function EmptyState({ onPick, vibe }: { onPick: (p: string) => void; vibe: strin
 }
 
 function MessageBubble({ message }: { message: UIMessage }) {
-  const text = messageText(message);
+  const rawText = messageText(message);
   const isUser = message.role === "user";
+  const text = isUser ? rawText : ensureCodeBlocks(rawText);
   const codes = !isUser ? extractCodeBlocks(text) : [];
 
   if (isUser) {
