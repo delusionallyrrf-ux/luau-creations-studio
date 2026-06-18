@@ -3,7 +3,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
 import { Send, Download, Copy, Check, Sparkles, User } from "lucide-react";
-import { messageText, extractCodeBlocks, ensureCodeBlocks, type Thread } from "@/lib/threads";
+import { messageText, ensureCodeBlocks, type Thread } from "@/lib/threads";
 
 interface Props {
   thread: Thread;
