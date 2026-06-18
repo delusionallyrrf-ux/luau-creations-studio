@@ -152,7 +152,6 @@ function MessageBubble({ message }: { message: UIMessage }) {
   const rawText = messageText(message);
   const isUser = message.role === "user";
   const text = isUser ? rawText : ensureCodeBlocks(rawText);
-  const codes = !isUser ? extractCodeBlocks(text) : [];
 
   if (isUser) {
     return (
@@ -169,8 +168,8 @@ function MessageBubble({ message }: { message: UIMessage }) {
     );
   }
 
-  // Render assistant: strip fenced blocks from markdown, then render them as code cards
-  const withoutFences = text.replace(/```[\s\S]*?```/g, "").trim();
+  // Render assistant: interleave prose segments and code cards in order
+  const segments = splitIntoSegments(text);
 
   return (
     <div className="flex items-start gap-3 max-w-3xl">
@@ -178,17 +177,42 @@ function MessageBubble({ message }: { message: UIMessage }) {
         <Sparkles className="w-3.5 h-3.5 text-primary" />
       </div>
       <div className="flex-1 min-w-0 space-y-3">
-        {withoutFences && (
-          <div className="markdown text-sm leading-relaxed text-foreground/90">
-            <ReactMarkdown>{withoutFences}</ReactMarkdown>
-          </div>
+        {segments.map((seg, i) =>
+          seg.type === "code" ? (
+            <CodeCard key={i} lang={seg.lang} code={seg.code} />
+          ) : (
+            <div key={i} className="markdown text-sm leading-relaxed text-foreground/90">
+              <ReactMarkdown>{seg.text}</ReactMarkdown>
+            </div>
+          ),
         )}
-        {codes.map((c, i) => (
-          <CodeCard key={i} lang={c.lang} code={c.code} />
-        ))}
       </div>
     </div>
   );
+}
+
+type Segment =
+  | { type: "text"; text: string }
+  | { type: "code"; lang: string; code: string };
+
+function splitIntoSegments(text: string): Segment[] {
+  const segments: Segment[] = [];
+  const re = /```([a-zA-Z0-9_+-]*)\s*\r?\n([\s\S]*?)```/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const before = text.slice(last, m.index).trim();
+    if (before) segments.push({ type: "text", text: before });
+    segments.push({
+      type: "code",
+      lang: (m[1] || "txt").toLowerCase(),
+      code: m[2].replace(/\s+$/, ""),
+    });
+    last = m.index + m[0].length;
+  }
+  const tail = text.slice(last).trim();
+  if (tail) segments.push({ type: "text", text: tail });
+  return segments;
 }
 
 function CodeCard({ lang, code }: { lang: string; code: string }) {
