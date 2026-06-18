@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Copy, Check, ChevronDown, X, RefreshCw, AlertTriangle } from "lucide-react";
+import { Download, Copy, Check, ChevronDown, X, RefreshCw, AlertTriangle, Trash2 } from "lucide-react";
 import { VIBES, GENERATORS, ITEM_PACKS, DETAIL_LEVELS, type Thread } from "@/lib/threads";
 import { TEMPLATES } from "@/lib/luau-templates";
 
@@ -9,11 +9,13 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onChangeSettings: () => void;
+  onClearAllChats: () => void;
 }
 
-export function GeneratorPanel({ thread, onChange, open, onClose, onChangeSettings }: Props) {
+export function GeneratorPanel({ thread, onChange, open, onClose, onChangeSettings, onClearAllChats }: Props) {
   const [tipsOpen, setTipsOpen] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [clearConfirming, setClearConfirming] = useState(false);
   const templates = TEMPLATES[thread.generator] ?? [];
 
   const vibe = VIBES.find((v) => v.id === thread.vibe);
@@ -96,6 +98,41 @@ export function GeneratorPanel({ thread, onChange, open, onClose, onChangeSettin
                     className="flex-1 h-9 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:opacity-90"
                   >
                     Yes, change
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="panel p-3 space-y-2 border-destructive/30">
+            {!clearConfirming ? (
+              <button
+                onClick={() => setClearConfirming(true)}
+                className="w-full flex items-center justify-center gap-2 h-9 rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10 text-sm transition"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Clear all chats
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+                  <span>This deletes every saved chat in this browser and starts a fresh one.</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setClearConfirming(false)}
+                    className="flex-1 h-9 rounded-md border border-border hover:bg-surface-2 text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setClearConfirming(false);
+                      onClearAllChats();
+                    }}
+                    className="flex-1 h-9 rounded-md bg-destructive text-destructive-foreground text-xs font-medium hover:opacity-90"
+                  >
+                    Delete all
                   </button>
                 </div>
               </div>
