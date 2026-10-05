@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
@@ -16,21 +16,34 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Capture the initial messages once — feeding the live array back into
+  // useChat every render causes an infinite update loop (React error #185).
+  const initialMessagesRef = useRef(thread.messages);
+  const lastPersistedRef = useRef<UIMessage[]>(thread.messages);
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: { vibe: thread.vibe, generator: thread.generator, items: thread.items, detail: thread.detail },
+        prepareSendMessagesRequest: ({ body, messages }) => ({
+          body: { ...body, messages: compactMessagesForRequest(messages) },
+        }),
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [thread.id],
+  );
+
   const { messages, sendMessage, status, error } = useChat({
     id: thread.id,
-    messages: thread.messages,
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      body: { vibe: thread.vibe, generator: thread.generator, items: thread.items, detail: thread.detail },
-      prepareSendMessagesRequest: ({ body, messages }) => ({
-        body: { ...body, messages: compactMessagesForRequest(messages) },
-      }),
-    }),
-
+    messages: initialMessagesRef.current,
+    transport,
   });
 
-  // Persist messages back to parent
+  // Persist messages back to parent (only when the array actually changed)
   useEffect(() => {
+    if (lastPersistedRef.current === messages) return;
+    lastPersistedRef.current = messages;
     onMessages(messages);
     if (messages.length > 0 && thread.title === "New build") {
       const first = messages.find((m) => m.role === "user");
