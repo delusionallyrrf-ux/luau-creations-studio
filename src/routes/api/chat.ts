@@ -129,15 +129,30 @@ export const Route = createFileRoute("/api/chat")({
 
         let lastErr: unknown = null;
         const geminiKey = useBuiltIn ? "" : (aiKey?.trim() || process.env.GEMINI_API_KEY || "");
-        const geminiModel = aiModel && aiModel !== "lovable" ? aiModel : (process.env.GEMINI_MODEL || "gemini-flash-latest");
+        const VALID = ["gemini-3-flash-preview", "gemini-flash-latest", "gemini-flash-lite-latest"];
+        const picked = aiModel && VALID.includes(aiModel) ? aiModel : "gemini-3-flash-preview";
         try {
+          let geminiModel = picked;
+          if (geminiKey) {
+            // Pick the first model that isn't rate-limited/overloaded right now.
+            const google = createGoogleGenerativeAI({ apiKey: geminiKey });
+            for (const m of [picked, ...VALID.filter((v) => v !== picked)]) {
+              try {
+                const r = await google(m).doGenerate({ prompt: [{ role: "user", content: [{ type: "text", text: "ok" }] }], maxOutputTokens: 1 } as never);
+                if (r) { geminiModel = m; break; }
+              } catch (e) {
+                const s = describeError(e);
+                if (!/429|503|quota|high demand|unavailable|404/i.test(s)) { geminiModel = m; break; }
+              }
+            }
+          }
           const result = geminiKey
             ? streamText({
                 // BYOK: user's own Google AI Studio key (from settings or server secret).
                 model: createGoogleGenerativeAI({ apiKey: geminiKey })(geminiModel),
                 system,
                 messages: modelMessages,
-                maxRetries: 1,
+                maxRetries: 2,
                 abortSignal: request.signal,
                 onError: (e) => { lastErr = e; console.error("AI stream error", e); },
               })

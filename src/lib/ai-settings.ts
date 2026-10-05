@@ -1,7 +1,7 @@
 export const AI_MODELS = [
+  { id: "gemini-3-flash-preview", label: "Gemini 3 Flash (free, smart)" },
   { id: "gemini-flash-latest", label: "Gemini Flash (free, fast)" },
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro (smarter, lower free limits)" },
+  { id: "gemini-flash-lite-latest", label: "Gemini Flash Lite (free, rarely limited)" },
   { id: "lovable", label: "Built-in AI (uses Lovable credits)" },
 ] as const;
 
