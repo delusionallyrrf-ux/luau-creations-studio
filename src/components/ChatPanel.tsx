@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
@@ -38,10 +38,23 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
     id: thread.id,
     messages: initialMessagesRef.current,
     transport,
+    // Batch streaming updates — re-rendering on every single token of a long
+    // answer overwhelms React ("Maximum update depth exceeded").
+    experimental_throttle: 120,
   });
 
-  // Persist messages back to parent (only when the array actually changed)
+  const loading = status === "submitted" || status === "streaming";
+
+  // Keep latest values in refs so we can save on unmount without re-subscribing.
+  const latestMessagesRef = useRef(messages);
+  latestMessagesRef.current = messages;
+  const onMessagesRef = useRef(onMessages);
+  onMessagesRef.current = onMessages;
+
+  // Persist to the parent only when the AI is NOT streaming. Saving on every
+  // streamed chunk re-rendered the whole page per token and crashed the chat.
   useEffect(() => {
+    if (loading) return;
     if (lastPersistedRef.current === messages) return;
     lastPersistedRef.current = messages;
     onMessages(messages);
@@ -53,17 +66,28 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, status]);
+  }, [messages, loading]);
+
+  // Save whatever we have if the user switches chats mid-reply.
+  useEffect(() => {
+    return () => {
+      const latest = latestMessagesRef.current;
+      if (lastPersistedRef.current !== latest) {
+        lastPersistedRef.current = latest;
+        onMessagesRef.current(latest);
+      }
+    };
+  }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, status]);
+    // Instant scroll while streaming — stacking smooth scroll animations per chunk janks the page.
+    bottomRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth", block: "end" });
+  }, [messages, loading]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, [thread.id]);
 
-  const loading = status === "submitted" || status === "streaming";
 
   function submit() {
     const text = input.trim();
@@ -164,7 +188,7 @@ function EmptyState({ onPick, vibe }: { onPick: (p: string) => void; vibe: strin
   );
 }
 
-function MessageBubble({ message }: { message: UIMessage }) {
+const MessageBubble = memo(function MessageBubble({ message }: { message: UIMessage }) {
   const rawText = messageText(message);
   const isUser = message.role === "user";
   const text = isUser ? rawText : ensureCodeBlocks(rawText);
@@ -205,7 +229,7 @@ function MessageBubble({ message }: { message: UIMessage }) {
       </div>
     </div>
   );
-}
+});
 
 type Segment =
   | { type: "text"; text: string }
