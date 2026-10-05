@@ -104,11 +104,12 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { messages, vibe, generator, items, detail } = (await request.json()) as Body;
+        const { messages, vibe, generator, items, detail, aiModel, aiKey } = (await request.json()) as Body & { aiModel?: string; aiKey?: string };
         if (!Array.isArray(messages)) return new Response("messages required", { status: 400 });
 
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        const key = process.env.LOVABLE_API_KEY ?? "";
+        const useBuiltIn = aiModel === "lovable";
+        if (useBuiltIn && !key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
 
         const ctxBits: string[] = [];
         if (vibe) ctxBits.push(`Locked vibe: ${vibe}. Follow it exactly for every output.`);
@@ -127,12 +128,13 @@ export const Route = createFileRoute("/api/chat")({
         const modelMessages = await convertToModelMessages(trimmed);
 
         let lastErr: unknown = null;
-        const geminiKey = process.env.GEMINI_API_KEY;
+        const geminiKey = useBuiltIn ? "" : (aiKey?.trim() || process.env.GEMINI_API_KEY || "");
+        const geminiModel = aiModel && aiModel !== "lovable" ? aiModel : (process.env.GEMINI_MODEL || "gemini-flash-latest");
         try {
           const result = geminiKey
             ? streamText({
-                // BYOK: user's own free Google AI Studio key — no Lovable credits used.
-                model: createGoogleGenerativeAI({ apiKey: geminiKey })(process.env.GEMINI_MODEL || "gemini-flash-latest"),
+                // BYOK: user's own Google AI Studio key (from settings or server secret).
+                model: createGoogleGenerativeAI({ apiKey: geminiKey })(geminiModel),
                 system,
                 messages: modelMessages,
                 maxRetries: 1,

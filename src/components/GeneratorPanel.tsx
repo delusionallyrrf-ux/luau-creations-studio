@@ -1,4 +1,51 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AI_MODELS, loadAiSettings, saveAiSettings } from "@/lib/ai-settings";
+
+function AiSection() {
+  const [model, setModel] = useState("gemini-flash-latest");
+  const [apiKey, setApiKey] = useState("");
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    const s = loadAiSettings();
+    setModel(s.model);
+    setApiKey(s.apiKey);
+  }, []);
+  function save() {
+    saveAiSettings({ model, apiKey: apiKey.trim() });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  }
+  return (
+    <div className="panel p-3 space-y-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">AI model & key</div>
+      <select
+        value={model}
+        onChange={(e) => setModel(e.target.value)}
+        className="w-full h-9 rounded-md bg-surface-2 border border-border px-2 text-sm"
+      >
+        {AI_MODELS.map((m) => (
+          <option key={m.id} value={m.id}>{m.label}</option>
+        ))}
+      </select>
+      <input
+        type="password"
+        value={apiKey}
+        onChange={(e) => setApiKey(e.target.value)}
+        placeholder="Gemini API key (blank = use saved key)"
+        className="w-full h-9 rounded-md bg-surface-2 border border-border px-2 text-sm"
+      />
+      <button
+        onClick={save}
+        className="w-full h-9 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:opacity-90"
+      >
+        {saved ? "Saved" : "Save AI settings"}
+      </button>
+      <div className="text-[11px] text-muted-foreground">
+        Key stays in this browser. Get a free one at aistudio.google.com.
+      </div>
+    </div>
+  );
+}
 import { Download, Copy, Check, ChevronDown, X, RefreshCw, AlertTriangle, Trash2 } from "lucide-react";
 import { VIBES, GENERATORS, ITEM_PACKS, DETAIL_LEVELS, type Thread } from "@/lib/threads";
 import { TEMPLATES } from "@/lib/luau-templates";
@@ -138,6 +185,8 @@ export function GeneratorPanel({ thread, onChange, open, onClose, onChangeSettin
               </div>
             )}
           </div>
+
+          <AiSection />
 
           <Section title="Starter snippets">
             <div className="space-y-2">
