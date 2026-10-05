@@ -4,6 +4,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
 import { Send, Download, Copy, Check, Sparkles, User } from "lucide-react";
 import { messageText, ensureCodeBlocks, type Thread } from "@/lib/threads";
+import { loadAiSettings } from "@/lib/ai-settings";
 
 interface Props {
   thread: Thread;
@@ -26,9 +27,12 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
       new DefaultChatTransport({
         api: "/api/chat",
         body: { vibe: thread.vibe, generator: thread.generator, items: thread.items, detail: thread.detail },
-        prepareSendMessagesRequest: ({ body, messages }) => ({
-          body: { ...body, messages: compactMessagesForRequest(messages) },
-        }),
+        prepareSendMessagesRequest: ({ body, messages }) => {
+          const ai = loadAiSettings();
+          return {
+            body: { ...body, aiModel: ai.model, aiKey: ai.apiKey, messages: compactMessagesForRequest(messages) },
+          };
+        },
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [thread.id],
