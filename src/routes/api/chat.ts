@@ -1,4 +1,5 @@
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
@@ -126,8 +127,19 @@ export const Route = createFileRoute("/api/chat")({
         const modelMessages = await convertToModelMessages(trimmed);
 
         let lastErr: unknown = null;
+        const geminiKey = process.env.GEMINI_API_KEY;
         try {
-          const result = streamText({
+          const result = geminiKey
+            ? streamText({
+                // BYOK: user's own free Google AI Studio key — no Lovable credits used.
+                model: createGoogleGenerativeAI({ apiKey: geminiKey })(process.env.GEMINI_MODEL || "gemini-flash-latest"),
+                system,
+                messages: modelMessages,
+                maxRetries: 1,
+                abortSignal: request.signal,
+                onError: (e) => { lastErr = e; console.error("AI stream error", e); },
+              })
+            : streamText({
             model: gateway.responses("openai/gpt-6-astra"),
             system,
             messages: modelMessages,
