@@ -80,14 +80,14 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, status]);
+    // Instant scroll while streaming — stacking smooth scroll animations per chunk janks the page.
+    bottomRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth", block: "end" });
+  }, [messages, loading]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, [thread.id]);
 
-  const loading = status === "submitted" || status === "streaming";
 
   function submit() {
     const text = input.trim();
