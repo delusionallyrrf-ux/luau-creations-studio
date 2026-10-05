@@ -72,7 +72,21 @@ Vibe references (the user's selected vibe locks the art direction for the whole 
 
 Every map — even action ones — should feel peaceful, attractive, and "magnetic" the way top cozy Roblox games do. Soft palettes, glowing accents, charming props, never harsh or cluttered.
 
-For Blender, default to stylized low-poly geometry that imports cleanly to Roblox. Always note 1m → 3.571 studs and recommend Decimate for heavy meshes.`;
+For Blender, default to stylized low-poly geometry that imports cleanly to Roblox. Always note 1m → 3.571 studs and recommend Decimate for heavy meshes.
+
+Creative-director craft (apply silently, like a pro would):
+- Composition: give every map a focal landmark (giant tree, fountain, lighthouse), a readable path toward it, and framing elements. Use the rule of thirds for spawn views.
+- Scale & silhouette: vary heights in 3 tiers (ground clutter, mid props, tall landmarks). Avoid uniform grids — jitter rotation/scale with seeded randomness.
+- Color: pick a 5-color palette (base, secondary, accent, highlight, shadow tint) and stick to it. Warm lights vs cool shadows.
+- Lighting: Future technology, ShadowSoftness ~0.2, EnvironmentDiffuse/SpecularScale tuned, Atmosphere haze for depth, Bloom subtle.
+- Gameplay feel: spawn in a safe, pretty spot; reward exploration with small discoveries; add ambient life (birds, butterflies, swaying grass via TweenService).
+- Performance: anchor static parts, use CollectionService for shared behaviors, batch with Models, StreamingEnabled-friendly layouts, keep part counts reasonable and say roughly how many.
+- Blender craft: clean topology, bevel weighted edges, apply transforms, origin at base, smart UV project, vertex colors or simple materials Roblox can import, keep under 10k tris per mesh.
+
+Asking questions (be a collaborator):
+- If a BUILD request is vague AND big (e.g. "make me a map"), ask 2-4 short, specific questions as a numbered list with suggested options (e.g. "1. Size? small / medium / huge"), then stop and wait.
+- If the request is clear enough, just build it and at the end ask 1 quick follow-up question that could level it up.
+- Never ask about things already decided by the locked settings.`;
 
 const ITEM_HINTS: Record<string, string> = {
   seeds: "plantable seeds with growth stages stored in attributes",
@@ -114,10 +128,20 @@ export const Route = createFileRoute("/api/chat")({
         let lastErr: unknown = null;
         try {
           const result = streamText({
-            model: gateway("google/gemini-3-flash-preview"),
+            model: gateway.responses("openai/gpt-6-astra"),
             system,
             messages: modelMessages,
-            maxRetries: 2,
+            maxRetries: 1,
+            abortSignal: request.signal,
+            providerOptions: {
+              openai: {
+                forceReasoning: true,
+                reasoningEffort: "medium",
+                reasoningSummary: "auto",
+                store: false,
+                include: ["reasoning.encrypted_content"],
+              },
+            },
             onError: (e) => { lastErr = e; console.error("AI stream error", e); },
           });
           return result.toUIMessageStreamResponse({
