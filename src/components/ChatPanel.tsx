@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
@@ -188,7 +188,7 @@ function EmptyState({ onPick, vibe }: { onPick: (p: string) => void; vibe: strin
   );
 }
 
-function MessageBubble({ message }: { message: UIMessage }) {
+const MessageBubble = memo(function MessageBubble({ message }: { message: UIMessage }) {
   const rawText = messageText(message);
   const isUser = message.role === "user";
   const text = isUser ? rawText : ensureCodeBlocks(rawText);
@@ -229,7 +229,7 @@ function MessageBubble({ message }: { message: UIMessage }) {
       </div>
     </div>
   );
-}
+});
 
 type Segment =
   | { type: "text"; text: string }
