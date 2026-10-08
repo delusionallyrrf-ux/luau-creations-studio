@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Send, Download, Copy, Check, Sparkles, User } from "lucide-react";
 import { messageText, ensureCodeBlocks, type Thread } from "@/lib/threads";
 import { loadAiSettings } from "@/lib/ai-settings";
+import { StudioExportBar } from "@/components/StudioExport";
 
 interface Props {
   thread: Thread;
@@ -230,6 +231,11 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: UIMess
             </div>
           ),
         )}
+        <StudioExportBar
+          codes={segments
+            .filter((s): s is Extract<Segment, { type: "code" }> => s.type === "code" && /^(lua|luau|txt)$/.test(s.lang))
+            .map((s) => s.code)}
+        />
       </div>
     </div>
   );
