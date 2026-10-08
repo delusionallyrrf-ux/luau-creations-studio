@@ -56,7 +56,8 @@ function PluginDialog({ onClose }: { onClose: () => void }) {
           <li>In Roblox Studio, add a <b>Script</b> to <b>ServerStorage</b> and paste it in.</li>
           <li>Right-click the Script → <b>Save as Local Plugin…</b> → Save. You can delete the Script after.</li>
           <li>A <b>MapForge</b> button now appears in the <b>Plugins</b> tab.</li>
-          <li>Here, press <b>Send to Studio</b> under any reply, then paste into the plugin and press <b>Import</b>. Ctrl+Z undoes it.</li>
+          <li>Open it, paste your free Gemini key, type what to build and press <b>Build with AI</b> — it builds real parts right in your place. Allow the web request when Studio asks.</li>
+          <li>Bundles from <b>Send to Studio</b> here can be pasted in and run with <b>Run pasted code</b>. Ctrl+Z undoes anything.</li>
         </ol>
         <div className="flex gap-2">
           <button onClick={copy} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">
