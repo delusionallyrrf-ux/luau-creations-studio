@@ -34,6 +34,7 @@ export const GENERATORS = [
   { id: "weather", label: "Weather / Sky", desc: "Rain, fog, day-night, particles" },
   { id: "gui", label: "GUI / UI", desc: "ScreenGuis, HUDs, menus, shops" },
   { id: "items", label: "Items / Tools", desc: "Tools, pets, seeds, collectibles" },
+  { id: "animation", label: "Animations & Motion", desc: "Swings, pets, popups, moving hazards, cutscenes" },
 ];
 
 export const ITEM_PACKS = [
