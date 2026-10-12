@@ -35,6 +35,8 @@ export const GENERATORS = [
   { id: "gui", label: "GUI / UI", desc: "ScreenGuis, HUDs, menus, shops" },
   { id: "items", label: "Items / Tools", desc: "Tools, pets, seeds, collectibles" },
   { id: "animation", label: "Animations & Motion", desc: "Swings, pets, popups, moving hazards, cutscenes" },
+  { id: "vfx", label: "VFX & Particles", desc: "Auras, slashes, bursts, trails, magic, fireflies" },
+  { id: "sound", label: "Sound & Ambience", desc: "Soundscapes, zones, reverb, footsteps, music" },
 ];
 
 export const ITEM_PACKS = [
