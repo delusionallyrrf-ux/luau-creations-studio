@@ -47,8 +47,8 @@ local Selection = game:GetService("Selection")
 
 local toolbar = plugin:CreateToolbar("MapForge")
 local button = toolbar:CreateButton("MapForge", "Open the MapForge AI builder", "rbxassetid://4458901886")
-local widget = plugin:CreateDockWidgetPluginGui("MapForgeAI",
-  DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Right, false, false, 360, 560, 300, 400))
+local widget = plugin:CreateDockWidgetPluginGuiAsync("MapForgeAI_v2",
+  DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, true, true, 380, 580, 300, 400))
 widget.Title = "MapForge AI"
 button.Click:Connect(function() widget.Enabled = not widget.Enabled end)
 

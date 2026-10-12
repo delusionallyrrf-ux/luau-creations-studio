@@ -30,6 +30,7 @@ export const GENERATORS = [
   { id: "obby", label: "Obby / Parkour", desc: "Stages, kill bricks, checkpoints" },
   { id: "city", label: "City / Buildings", desc: "Roads, houses, props" },
   { id: "blender", label: "Blender → Roblox", desc: "Mesh import & exporter helper" },
+  { id: "fullgame", label: "Full Game Loop", desc: "Playable simulator, obby, tycoon or RPG in one go" },
   { id: "weather", label: "Weather / Sky", desc: "Rain, fog, day-night, particles" },
   { id: "gui", label: "GUI / UI", desc: "ScreenGuis, HUDs, menus, shops" },
   { id: "items", label: "Items / Tools", desc: "Tools, pets, seeds, collectibles" },
