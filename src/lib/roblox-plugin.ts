@@ -63,6 +63,8 @@ Rules for the code:
 - Make it detailed and cozy: a focal landmark, paths, matching color palette, varied sizes, soft lighting (set Lighting properties directly).
 - If the build needs gameplay at runtime, create a Script instance with .Source set to that runtime code and parent it to ServerScriptService.
 - The code must end with: return <theModel>
+EDITING: You remember the whole conversation. If the user asks to change, add to, recolor, resize, move or remove parts of something you already built, DO NOT rebuild from scratch. Write code that finds the existing model with workspace:FindFirstChild("<ModelName>") (the current build's name is given to you as CURRENT_BUILD), edits its descendants in place (loop GetDescendants, match by Name/ClassName), adds new parts into it, or destroys only what was asked. If it is missing, rebuild it. Still end with: return <theModel>
+Give every important part a clear unique Name so it can be edited later.
 If the user only asks a question, answer briefly with no code.]]
 
 -- UI ------------------------------------------------------------------
@@ -97,22 +99,42 @@ local keyBox = box(0, 28, "Paste your free Gemini API key")
 keyBox.Text = plugin:GetSetting("MapForgeKey") or ""
 local modelBtn = btn(0, 34, 1, "Model: " .. (plugin:GetSetting("MapForgeModel") or MODELS[1]), panel)
 modelBtn.TextColor3 = Color3.new(1,1,1)
-local log = mk("TextLabel", { Position = UDim2.new(0,0,0,70), Size = UDim2.new(1,0,1,-210), BackgroundColor3 = panel,
-  TextColor3 = Color3.fromRGB(220,220,240), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left,
-  TextYAlignment = Enum.TextYAlignment.Bottom, Font = Enum.Font.Gotham, TextSize = 13,
-  Text = "Describe what to build, e.g. 'a cozy garden village with a windmill and lanterns'." }, root)
-Instance.new("UICorner", log).CornerRadius = UDim.new(0, 8)
-local prompt = box(0, 80, "What should MapForge build? (or paste a website bundle / Lua code)", true)
-prompt.Position = UDim2.new(0,0,1,-134)
-local buildBtn = btn(0, 0, 0.5, "Build with AI")
-buildBtn.Position = UDim2.new(0,0,1,-48)
-local runBtn = btn(0.5, 0, 0.5, "Run pasted code", Color3.fromRGB(255,140,200))
-runBtn.Position = UDim2.new(0.5,4,1,-48)
-local clearBtn = btn(0, 0, 1, "New chat", panel)
-clearBtn.Position = UDim2.new(0,0,1,-14); clearBtn.Size = UDim2.new(1,0,0,14); clearBtn.TextSize = 10
-clearBtn.TextColor3 = Color3.new(1,1,1)
-
-local function say(t) log.Text = t end
+local chat = Instance.new("ScrollingFrame")
+chat.Position = UDim2.new(0,0,0,70); chat.Size = UDim2.new(1,0,1,-210)
+chat.BackgroundColor3 = Color3.fromRGB(18, 13, 30); chat.BorderSizePixel = 0
+chat.ScrollBarThickness = 4; chat.ScrollBarImageColor3 = mint
+chat.CanvasSize = UDim2.new(); chat.AutomaticCanvasSize = Enum.AutomaticSize.Y
+chat.Parent = root
+Instance.new("UICorner", chat).CornerRadius = UDim.new(0, 8)
+local list = Instance.new("UIListLayout", chat)
+list.Padding = UDim.new(0, 6); list.SortOrder = Enum.SortOrder.LayoutOrder
+local cpad = Instance.new("UIPadding", chat)
+cpad.PaddingTop, cpad.PaddingBottom, cpad.PaddingLeft, cpad.PaddingRight = UDim.new(0,6), UDim.new(0,6), UDim.new(0,6), UDim.new(0,10)
+local order = 0
+local function bubble(text, who)
+  order += 1
+  local isUser = who == "user"
+  local row = Instance.new("Frame")
+  row.BackgroundTransparency = 1; row.Size = UDim2.new(1,0,0,0)
+  row.AutomaticSize = Enum.AutomaticSize.Y; row.LayoutOrder = order; row.Parent = chat
+  local b = Instance.new("TextLabel")
+  b.AutomaticSize = Enum.AutomaticSize.Y; b.Size = UDim2.new(0.86,0,0,0)
+  b.Position = isUser and UDim2.new(0.14,0,0,0) or UDim2.new(0,0,0,0)
+  b.BackgroundColor3 = isUser and Color3.fromRGB(88, 60, 160) or panel
+  b.TextColor3 = Color3.fromRGB(235,235,250); b.TextWrapped = true
+  b.TextXAlignment = Enum.TextXAlignment.Left; b.Font = Enum.Font.Gotham; b.TextSize = 13
+  b.RichText = false; b.Text = (isUser and "" or "MapForge  ") .. text
+  b.Parent = row
+  Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
+  local bp = Instance.new("UIPadding", b)
+  bp.PaddingTop, bp.PaddingBottom, bp.PaddingLeft, bp.PaddingRight = UDim.new(0,7), UDim.new(0,7), UDim.new(0,9), UDim.new(0,9)
+  if not isUser then
+    local s = Instance.new("UIStroke", b); s.Color = mint; s.Thickness = 1; s.Transparency = 0.4
+  end
+  task.defer(function() chat.CanvasPosition = Vector2.new(0, chat.AbsoluteCanvasSize.Y) end)
+  return b
+end
+local function say(t) return bubble(t, "ai") end
 keyBox.FocusLost:Connect(function() plugin:SetSetting("MapForgeKey", keyBox.Text) end)
 modelBtn.MouseButton1Click:Connect(function()
   local cur = plugin:GetSetting("MapForgeModel") or MODELS[1]
@@ -197,23 +219,60 @@ local function ask(text)
   return out
 end
 
+-- Memory: remember chat + current build across sessions ----------------
+local currentBuild = plugin:GetSetting("MapForgeBuild")
+local function saveMemory()
+  while #history > 40 do table.remove(history, 1) end
+  pcall(function() plugin:SetSetting("MapForgeHistory", HttpService:JSONEncode(history)) end)
+  plugin:SetSetting("MapForgeBuild", currentBuild)
+end
+
 buildBtn.MouseButton1Click:Connect(function()
   if busy or prompt.Text == "" then return end
+  local userText = prompt.Text
   busy = true; buildBtn.Text = "Thinking..."
-  say("MapForge is designing your build...")
-  local reply, err = ask(prompt.Text)
+  bubble(userText, "user")
+  prompt.Text = ""
+  local thinking = say("Designing...")
+  local ctx = "CURRENT_BUILD: " .. ((currentBuild and workspace:FindFirstChild(currentBuild)) and currentBuild or "none") .. "\n\n"
+  local reply, err = ask(ctx .. userText)
   busy = false; buildBtn.Text = "Build with AI"
-  if not reply then say(err); return end
+  thinking.Parent:Destroy()
+  if not reply then say(err); prompt.Text = userText; return end
   local code = extractLua(reply)
-  local talk = reply:gsub("` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`.-` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`", ""):gsub("^%s+", ""):sub(1, 400)
-  if not code then say(talk); return end
+  local talk = reply:gsub("` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`.-` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`", ""):gsub("^%s+", ""):sub(1, 600)
+  if not code then say(talk); saveMemory(); return end
   local ok, result = runCode(code, "Build")
   if ok then
-    prompt.Text = ""
-    say(talk .. "\n\nBuilt into your place! Move it around, or Ctrl+Z to undo. Ask for changes anytime.")
+    if typeof(result) == "Instance" then currentBuild = result.Name end
+    say(talk .. "\n\nDone! Ask for changes anytime, or Ctrl+Z to undo just this step.")
   else
     say("The AI's code hit an error: " .. tostring(result) .. "\nPress Build again to retry.")
     table.insert(history, { role = "user", parts = { { text = "That code errored: " .. tostring(result) .. ". Fix it." } } })
+    table.insert(history, { role = "model", parts = { { text = "Understood, I will fix it next time." } } })
   end
+  saveMemory()
 end)
+
+clearBtn.MouseButton1Click:Connect(function()
+  history = {}; currentBuild = nil; saveMemory()
+  for _, c in ipairs(chat:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+  say("New chat started.")
+end)
+
+-- Restore previous conversation
+do
+  local okH, saved = pcall(function() return HttpService:JSONDecode(plugin:GetSetting("MapForgeHistory") or "[]") end)
+  if okH and type(saved) == "table" and #saved > 0 then
+    history = saved
+    for _, m in ipairs(history) do
+      local t = (m.parts and m.parts[1] and m.parts[1].text) or ""
+      t = t:gsub("^CURRENT_BUILD:[^\n]*\n\n", "")
+      if m.role == "model" then t = t:gsub("` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`.-` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`", "[code]") end
+      bubble(t:sub(1, 600), m.role == "user" and "user" or "ai")
+    end
+  else
+    say("Describe what to build, e.g. 'a cozy garden village with a windmill and lanterns'. Then ask me to change it!")
+  end
+end
 `;
