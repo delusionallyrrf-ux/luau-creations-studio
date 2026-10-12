@@ -219,23 +219,60 @@ local function ask(text)
   return out
 end
 
+-- Memory: remember chat + current build across sessions ----------------
+local currentBuild = plugin:GetSetting("MapForgeBuild")
+local function saveMemory()
+  while #history > 40 do table.remove(history, 1) end
+  pcall(function() plugin:SetSetting("MapForgeHistory", HttpService:JSONEncode(history)) end)
+  plugin:SetSetting("MapForgeBuild", currentBuild)
+end
+
 buildBtn.MouseButton1Click:Connect(function()
   if busy or prompt.Text == "" then return end
+  local userText = prompt.Text
   busy = true; buildBtn.Text = "Thinking..."
-  say("MapForge is designing your build...")
-  local reply, err = ask(prompt.Text)
+  bubble(userText, "user")
+  prompt.Text = ""
+  local thinking = say("Designing...")
+  local ctx = "CURRENT_BUILD: " .. ((currentBuild and workspace:FindFirstChild(currentBuild)) and currentBuild or "none") .. "\n\n"
+  local reply, err = ask(ctx .. userText)
   busy = false; buildBtn.Text = "Build with AI"
-  if not reply then say(err); return end
+  thinking.Parent:Destroy()
+  if not reply then say(err); prompt.Text = userText; return end
   local code = extractLua(reply)
-  local talk = reply:gsub("` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`.-` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`", ""):gsub("^%s+", ""):sub(1, 400)
-  if not code then say(talk); return end
+  local talk = reply:gsub("` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`.-` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`", ""):gsub("^%s+", ""):sub(1, 600)
+  if not code then say(talk); saveMemory(); return end
   local ok, result = runCode(code, "Build")
   if ok then
-    prompt.Text = ""
-    say(talk .. "\n\nBuilt into your place! Move it around, or Ctrl+Z to undo. Ask for changes anytime.")
+    if typeof(result) == "Instance" then currentBuild = result.Name end
+    say(talk .. "\n\nDone! Ask for changes anytime, or Ctrl+Z to undo just this step.")
   else
     say("The AI's code hit an error: " .. tostring(result) .. "\nPress Build again to retry.")
     table.insert(history, { role = "user", parts = { { text = "That code errored: " .. tostring(result) .. ". Fix it." } } })
+    table.insert(history, { role = "model", parts = { { text = "Understood, I will fix it next time." } } })
   end
+  saveMemory()
 end)
+
+clearBtn.MouseButton1Click:Connect(function()
+  history = {}; currentBuild = nil; saveMemory()
+  for _, c in ipairs(chat:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+  say("New chat started.")
+end)
+
+-- Restore previous conversation
+do
+  local okH, saved = pcall(function() return HttpService:JSONDecode(plugin:GetSetting("MapForgeHistory") or "[]") end)
+  if okH and type(saved) == "table" and #saved > 0 then
+    history = saved
+    for _, m in ipairs(history) do
+      local t = (m.parts and m.parts[1] and m.parts[1].text) or ""
+      t = t:gsub("^CURRENT_BUILD:[^\n]*\n\n", "")
+      if m.role == "model" then t = t:gsub("` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`.-` + "`" + String.raw`` + "`" + String.raw`` + "`" + String.raw`", "[code]") end
+      bubble(t:sub(1, 600), m.role == "user" and "user" or "ai")
+    end
+  else
+    say("Describe what to build, e.g. 'a cozy garden village with a windmill and lanterns'. Then ask me to change it!")
+  end
+end
 `;
