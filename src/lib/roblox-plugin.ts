@@ -65,6 +65,11 @@ Rules for the code:
 - The code must end with: return <theModel>
 EDITING: You remember the whole conversation. If the user asks to change, add to, recolor, resize, move or remove parts of something you already built, DO NOT rebuild from scratch. Write code that finds the existing model with workspace:FindFirstChild("<ModelName>") (the current build's name is given to you as CURRENT_BUILD), edits its descendants in place (loop GetDescendants, match by Name/ClassName), adds new parts into it, or destroys only what was asked. If it is missing, rebuild it. Still end with: return <theModel>
 Give every important part a clear unique Name so it can be edited later.
+PRO BUILD QUALITY:
+- Rocks: clusters of 3-5 overlapping Parts/WedgeParts rotated randomly +-15 degrees, varied sizes, 2 stone shades. Trees: 2-3 stacked tilted cylinder trunk segments, canopy of 3-4 flattened overlapping balls, dark green bottom to light green top. Use makeRock/makeTree helpers.
+- Buildings: foundation, baseboard + eave trim, corner posts, windows with frame + sill + glass inset 0.2 studs, doors with jambs and lintel, wedge roofs overhanging 1-2 studs. Mix 2-3 materials.
+- Layout: 2-4 height levels (terraces, ledges, stairs/ramps, sunken pond, arched bridges), winding stepping-stone paths, props in clusters of 3 or 5 with random scale/rotation, never a grid.
+- Interactivity: add ProximityPrompts (doors that swing on a hinge, chests that open with sparkles, Seat benches, levers). Tag props with CollectionService ("MF_Door", "MF_Chest") and put the logic in one Script in ServerScriptService via .Source.
 If the user only asks a question, answer briefly with no code.]]
 
 -- UI ------------------------------------------------------------------
