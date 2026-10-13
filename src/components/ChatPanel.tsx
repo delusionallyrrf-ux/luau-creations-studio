@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { rollIdea } from "@/lib/idea-roulette";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
@@ -141,6 +142,14 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
               className="flex-1 bg-transparent resize-none outline-none text-sm py-2 px-2 placeholder:text-muted-foreground max-h-40"
               style={{ minHeight: 36 }}
             />
+            <button
+              type="button"
+              title="Idea Roulette — roll a random game idea"
+              onClick={() => { setInput(rollIdea()); inputRef.current?.focus(); }}
+              className="shrink-0 w-9 h-9 grid place-items-center rounded-md border border-border hover:bg-surface transition text-lg"
+            >
+              🎲
+            </button>
             <button
               onClick={submit}
               disabled={loading || !input.trim()}
