@@ -24,13 +24,42 @@ export function StudioExportBar({ codes }: { codes: string[] }) {
           Get the Studio plugin
         </button>
       </div>
-      {open && <PluginDialog onClose={() => setOpen(false)} />}
+      {open && <PluginDialog codes={codes} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-function PluginDialog({ onClose }: { onClose: () => void }) {
+function getSyncChannel(): string {
+  try {
+    const saved = localStorage.getItem("mapforge.sync-channel");
+    if (saved && /^[a-z0-9-]{4,32}$/.test(saved)) return saved;
+    const fresh = Math.random().toString(36).slice(2, 10);
+    localStorage.setItem("mapforge.sync-channel", fresh);
+    return fresh;
+  } catch {
+    return Math.random().toString(36).slice(2, 10);
+  }
+}
+
+function PluginDialog({ codes, onClose }: { codes: string[]; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [channel] = useState(getSyncChannel);
+  const [pushState, setPushState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function push() {
+    setPushState("sending");
+    try {
+      const res = await fetch("/api/public/studio-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel, payload: buildStudioPayload(codes) }),
+      });
+      setPushState(res.ok ? "sent" : "error");
+    } catch {
+      setPushState("error");
+    }
+    setTimeout(() => setPushState("idle"), 3000);
+  }
   function download() {
     const url = URL.createObjectURL(new Blob([PLUGIN_SOURCE], { type: "text/plain" }));
     const a = document.createElement("a");
