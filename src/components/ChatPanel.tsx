@@ -1,9 +1,9 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { rollIdea } from "@/lib/idea-roulette";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { DefaultChatTransport, type FileUIPart, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
-import { Send, Download, Copy, Check, Sparkles, User } from "lucide-react";
+import { Send, Download, Copy, Check, Sparkles, User, ImagePlus, X } from "lucide-react";
 import { messageText, ensureCodeBlocks, type Thread } from "@/lib/threads";
 import { loadAiSettings } from "@/lib/ai-settings";
 import { StudioExportBar } from "@/components/StudioExport";
@@ -16,7 +16,9 @@ interface Props {
 
 export function ChatPanel({ thread, onMessages, onTitle }: Props) {
   const [input, setInput] = useState("");
+  const [images, setImages] = useState<FileUIPart[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Capture the initial messages once — feeding the live array back into
@@ -95,11 +97,25 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
   }, [thread.id]);
 
 
+  async function addImages(files: File[]) {
+    const room = 3 - images.length;
+    for (const f of files.filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, room))) {
+      try {
+        const part = await fileToImagePart(f);
+        setImages((prev) => (prev.length >= 3 ? prev : [...prev, part]));
+      } catch {
+        // unreadable image — skip it
+      }
+    }
+  }
+
   function submit() {
     const text = input.trim();
-    if (!text || loading) return;
+    if ((!text && images.length === 0) || loading) return;
     setInput("");
-    sendMessage({ text });
+    const files = images;
+    setImages([]);
+    sendMessage({ text, files });
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
@@ -126,11 +142,53 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
 
       <div className="border-t border-border p-4 bg-surface/40">
         <div className="max-w-3xl mx-auto">
+          {images.length > 0 && (
+            <div className="flex gap-2 mb-2">
+              {images.map((img, i) => (
+                <div key={i} className="relative">
+                  <img src={img.url} alt={img.filename ?? "screenshot"} className="h-16 w-16 object-cover rounded-lg border border-border" />
+                  <button
+                    onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                    aria-label="Remove image"
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 grid place-items-center rounded-full bg-destructive text-destructive-foreground"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="panel-raised flex items-end gap-2 p-2 focus-within:glow-ring transition">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void addImages(Array.from(e.target.files ?? []));
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              title="Attach a screenshot (or paste one into the box)"
+              onClick={() => fileRef.current?.click()}
+              className="shrink-0 w-9 h-9 grid place-items-center rounded-md border border-border hover:bg-surface transition text-muted-foreground hover:text-foreground"
+            >
+              <ImagePlus className="w-4 h-4" />
+            </button>
             <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={(e) => {
+                const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+                if (files.length > 0) {
+                  e.preventDefault();
+                  void addImages(files);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -138,7 +196,7 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
                 }
               }}
               rows={1}
-              placeholder="Describe the map, the vibe, or the script you want..."
+              placeholder="Describe the map, the vibe, or paste a screenshot..."
               className="flex-1 bg-transparent resize-none outline-none text-sm py-2 px-2 placeholder:text-muted-foreground max-h-40"
               style={{ minHeight: 36 }}
             />
@@ -152,7 +210,7 @@ export function ChatPanel({ thread, onMessages, onTitle }: Props) {
             </button>
             <button
               onClick={submit}
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && images.length === 0)}
               className="shrink-0 w-9 h-9 grid place-items-center rounded-md bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition"
             >
               <Send className="w-4 h-4" />
@@ -208,10 +266,20 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: UIMess
   const text = isUser ? rawText : ensureCodeBlocks(rawText);
 
   if (isUser) {
+    const imgs = message.parts.flatMap((p) =>
+      p.type === "file" && p.mediaType.startsWith("image/") ? [p.url] : [],
+    );
     return (
       <div className="flex justify-end">
         <div className="flex items-start gap-3 max-w-[80%]">
           <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm whitespace-pre-wrap">
+            {imgs.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {imgs.map((url, i) => (
+                  <img key={i} src={url} alt="attached screenshot" className="max-h-40 rounded-lg border border-primary-foreground/20" />
+                ))}
+              </div>
+            )}
             {text}
           </div>
           <div className="w-7 h-7 rounded-full bg-surface-2 border border-border grid place-items-center shrink-0 mt-0.5">
@@ -275,10 +343,49 @@ function splitIntoSegments(text: string): Segment[] {
 }
 
 function compactMessagesForRequest(messages: UIMessage[]): UIMessage[] {
-  return messages.slice(-12).map((message) => {
+  const sliced = messages.slice(-12);
+  // Keep screenshot parts only on the newest user message — vision works,
+  // and old images don't bloat every request.
+  let lastUser = -1;
+  for (let i = sliced.length - 1; i >= 0; i--) {
+    if (sliced[i].role === "user") { lastUser = i; break; }
+  }
+  return sliced.map((message, i) => {
     const limit = message.role === "user" ? 2_000 : 4_000;
     const text = trimForRequest(messageText(message), limit);
-    return { ...message, parts: [{ type: "text", text }] } as UIMessage;
+    const parts: UIMessage["parts"] = [{ type: "text", text }];
+    if (i === lastUser) {
+      for (const p of message.parts) {
+        if (p.type === "file" && p.mediaType.startsWith("image/")) parts.push(p);
+      }
+    }
+    return { ...message, parts } as UIMessage;
+  });
+}
+
+function fileToImagePart(file: File): Promise<FileUIPart> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      // Downscale so screenshots stay cheap to send and small in storage.
+      const scale = Math.min(1, 1024 / Math.max(img.width, img.height, 1));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("no canvas")); return; }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve({
+        type: "file",
+        mediaType: "image/jpeg",
+        url: canvas.toDataURL("image/jpeg", 0.85),
+        filename: file.name,
+      });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
+    img.src = url;
   });
 }
 

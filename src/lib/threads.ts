@@ -77,7 +77,20 @@ export function loadThreads(): Thread[] {
 
 export function saveThreads(threads: Thread[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(threads));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(threads));
+  } catch {
+    // Quota exceeded (usually big screenshots) — persist without image data.
+    try {
+      const slim = threads.map((t) => ({
+        ...t,
+        messages: t.messages.map((m) => ({ ...m, parts: m.parts.filter((p) => p.type === "text") })),
+      }));
+      localStorage.setItem(KEY, JSON.stringify(slim));
+    } catch {
+      // Storage completely full — keep the app running, skip persistence.
+    }
+  }
 }
 
 export function newThread(): Thread {

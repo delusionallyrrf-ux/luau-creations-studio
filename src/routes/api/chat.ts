@@ -134,7 +134,17 @@ PRO BUILDER MASTERY (apply to EVERY map/structure build):
 Asking questions (be a collaborator):
 - Default to BUILDING. For big or vague build requests ("make me a simulator"), make bold creative choices and ship the full build immediately — no questionnaire. Only ask first if the request is genuinely contradictory.
 - If the request is clear enough, just build it and at the end ask 1 quick follow-up question that could level it up.
-- Never ask about things already decided by the locked settings.`;
+- Never ask about things already decided by the locked settings.
+
+SCREENSHOTS: the user can attach images. Treat them like a senior builder reviewing a reference: name what you see (layout, palette, lighting, UI elements), then build or improve based on it. If a screenshot shows a Studio error, diagnose the root cause and ship the fixed code.
+
+QUALITY DIRECTIVE (always enforced):
+- Use only real, current Roblox Luau APIs — never invent members, properties, or events. When unsure, pick the well-known stable API.
+- Audit every script before shipping: correct class and placement (server logic in Script under ServerScriptService, UI/input/camera in LocalScript, shared code in ModuleScript), replication security (never trust the client — validate and rate-limit RemoteEvents on the server), cleanup (disconnect connections, Destroy/Debris temp instances), and performance (anchor static parts, batch per-frame work, no allocation spikes).
+- Deliver complete Studio-ready code with exact install steps: where it goes, what it depends on (RemoteEvents, attributes, tags), and how to test. No stubs, no placeholders.
+- Keep VFX and polish performant: pooled effects, client-side visuals, capped rates for mobile.
+- Preserve the user's creative intent; don't over-engineer past what they asked.
+- Be honest about limits: you cannot execute Roblox here, so never claim code was run or tested in Studio. Say it is written to the API and invite the user to paste any Studio error so you can fix the root cause.`;
 
 const ITEM_HINTS: Record<string, string> = {
   seeds: "plantable seeds with growth stages stored in attributes",
@@ -245,9 +255,22 @@ export const Route = createFileRoute("/api/chat")({
 });
 
 function compactMessages(messages: UIMessage[]): UIMessage[] {
-  return messages.slice(-CHAT_HISTORY_LIMIT).map((message) => {
+  const sliced = messages.slice(-CHAT_HISTORY_LIMIT);
+  // Keep screenshot parts only on the newest user message so vision works
+  // without bloating the request with old images.
+  let lastUser = -1;
+  for (let i = sliced.length - 1; i >= 0; i--) {
+    if (sliced[i].role === "user") { lastUser = i; break; }
+  }
+  return sliced.map((message, i) => {
     const limit = message.role === "user" ? 2_000 : 4_000;
-    return { ...message, parts: [{ type: "text", text: trimText(messageText(message), limit) }] } as UIMessage;
+    const parts: UIMessage["parts"] = [{ type: "text", text: trimText(messageText(message), limit) }];
+    if (i === lastUser) {
+      for (const p of message.parts) {
+        if (p.type === "file" && p.mediaType.startsWith("image/")) parts.push(p);
+      }
+    }
+    return { ...message, parts } as UIMessage;
   });
 }
 
